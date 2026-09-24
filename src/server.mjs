@@ -72,9 +72,12 @@ function cookie(name, value, { maxAge = 43_200, sameSite = 'Lax' } = {}) {
 
 function securityHeaders(pathname) {
   const embed = pathname.startsWith('/companion/embed') || pathname === '/companion/companion.css';
+  const frameAncestors = process.env.NODE_ENV === 'production'
+    ? "'self'"
+    : "'self' http://127.0.0.1:5173 http://localhost:5173";
   return {
     'Content-Security-Policy': embed
-      ? "default-src 'none'; script-src 'self'; style-src 'self'; img-src blob:; connect-src 'self' https://raw.githubusercontent.com; frame-ancestors 'self'; base-uri 'none'; form-action 'none'"
+      ? `default-src 'none'; script-src 'self'; style-src 'self'; img-src blob:; connect-src 'self' https://raw.githubusercontent.com; frame-ancestors ${frameAncestors}; base-uri 'none'; form-action 'none'`
       : "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://github.com",
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',

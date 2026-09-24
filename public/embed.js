@@ -12,7 +12,7 @@ let stateName;
 let frameIndex = 0;
 
 function notifyParent(active, detail = {}) {
-  window.parent?.postMessage({ type: 'tonytan:companion-ready', active, ...detail }, window.location.origin);
+  window.parent?.postMessage({ type: 'tonytan:companion-ready', active, ...detail }, '*');
 }
 
 function safePackPath(value) {
