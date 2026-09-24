@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Manage Web Companion</title>
+    <link rel="stylesheet" href="/companion/manage.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">TONYTAN.ME / WEB COMPANION</p>
+      <h1>Publish the corner companion.</h1>
+      <p class="lede">Only the site owner can publish. Visitors automatically receive the active sanitized pack.</p>
+
+      <section class="auth-card" data-auth-state="loading">
+        <p class="status">Checking administrator session…</p>
+        <a class="login" href="/companion/auth/start" hidden>Continue with GitHub</a>
+      </section>
+
+      <form class="publish-card" hidden>
+        <label for="pack">Companion ZIP</label>
+        <input id="pack" name="pack" type="file" accept=".zip,application/zip" required />
+        <p>Maximum 8 MiB. The service republishes only validated JSON and PNG frames.</p>
+        <button type="submit">Validate and publish</button>
+        <progress max="100" value="0" hidden></progress>
+        <output aria-live="polite"></output>
+      </form>
+    </main>
+    <script type="module" src="/companion/manage.js"></script>
+  </body>
+</html>

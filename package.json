@@ -1,0 +1,17 @@
+{
+  "name": "@widmonstertony/web-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test",
+    "check": "npm test"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
+  }
+}

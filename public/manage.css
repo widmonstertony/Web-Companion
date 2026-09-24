@@ -1,0 +1,30 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  background: #f4f8ff;
+  color: #17223a;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at 80% 0, #dcecff, transparent 34rem); }
+main { width: min(calc(100% - 32px), 820px); margin: 0 auto; padding: 12vh 0 80px; }
+.eyebrow { color: #4d78bd; font: 700 .72rem ui-monospace, monospace; letter-spacing: .12em; }
+h1 { max-width: 720px; margin: 22px 0; font-size: clamp(3rem, 8vw, 6rem); letter-spacing: -.065em; line-height: .92; }
+.lede { max-width: 620px; color: #637089; font-size: 1.1rem; line-height: 1.7; }
+.auth-card,
+.publish-card { margin-top: 40px; padding: 28px; border: 1px solid rgba(62, 92, 138, .15); border-radius: 28px; background: rgba(255, 255, 255, .72); box-shadow: 0 18px 60px rgba(44, 80, 130, .08); backdrop-filter: blur(18px); }
+.login,
+button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; margin-top: 14px; padding: 0 20px; border: 0; border-radius: 15px; background: #3974e6; color: white; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.publish-card { display: grid; gap: 16px; }
+.publish-card[hidden] { display: none; }
+label { font-weight: 750; }
+input { padding: 18px; border: 1px dashed #90afd6; border-radius: 18px; background: #f9fcff; }
+progress { width: 100%; }
+output { min-height: 1.5em; color: #315b8c; font-weight: 650; }
+@media (prefers-color-scheme: dark) {
+  :root { background: #101620; color: #eef5ff; }
+  body { background: radial-gradient(circle at 80% 0, #182f4d, transparent 34rem); }
+  .lede { color: #a8b8cd; }
+  .auth-card, .publish-card { background: rgba(28, 38, 53, .78); }
+  input { background: #141f2d; color: inherit; }
+}
