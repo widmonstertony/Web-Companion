@@ -24,3 +24,15 @@ Secrets stay root-readable and are never placed in GitHub Actions. The service
 account receives no login shell and no general sudo access. The GitHub App is
 installed only on the asset repository with `Contents: write` and
 `Metadata: read`.
+
+## Releases
+
+`ops/web-companion.service` runs under the dedicated `web-companion` nologin
+account with a read-only system boundary and access only to its private state
+directory. `ops/deploy-web-companion` validates a pre-built release, switches
+an immutable `current` symlink, health-checks the service, and rolls back on
+failure. The five newest releases are retained.
+
+The CI workflow intentionally uploads no Actions artifacts. A production
+workflow can package and deploy within one job, avoiding persistent Actions
+storage while retaining exact dependency locking through `package-lock.json`.

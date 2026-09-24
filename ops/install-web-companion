@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+if (( EUID != 0 )); then
+  echo "Run this installer as root." >&2
+  exit 2
+fi
+
+ops_dir="${1:-}"
+for required_file in deploy-web-companion web-companion.env web-companion.service; do
+  if [[ -z "$ops_dir" || ! -f "$ops_dir/$required_file" ]]; then
+    echo "Usage: install-web-companion /path/to/prepared-ops" >&2
+    exit 2
+  fi
+done
+
+if [[ ! -x /usr/local/bin/node ]]; then
+  echo "The pinned production Node.js runtime is missing." >&2
+  exit 2
+fi
+
+if ! id web-companion >/dev/null 2>&1; then
+  useradd --system --home /nonexistent --shell /usr/sbin/nologin web-companion
+fi
+
+install -d -o root -g root -m 0755 /opt/web-companion /opt/web-companion/releases
+install -d -o web-companion -g web-companion -m 0700 /var/lib/web-companion
+if [[ ! -s /var/lib/web-companion/session-secret ]]; then
+  openssl rand -base64 48 >/var/lib/web-companion/session-secret
+fi
+chown web-companion:web-companion /var/lib/web-companion/session-secret
+chmod 0600 /var/lib/web-companion/session-secret
+
+install -o root -g root -m 0755 "$ops_dir/deploy-web-companion" /usr/local/sbin/deploy-web-companion
+install -o root -g root -m 0644 "$ops_dir/web-companion.service" /etc/systemd/system/web-companion.service
+install -o root -g web-companion -m 0640 "$ops_dir/web-companion.env" /etc/web-companion.env
+systemctl daemon-reload
+
+if [[ -L /opt/web-companion/current ]]; then
+  systemctl enable web-companion.service
+  systemctl restart web-companion.service
+else
+  systemctl disable web-companion.service >/dev/null 2>&1 || true
+fi
+

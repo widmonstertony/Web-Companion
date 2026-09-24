@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+archive="${1:-}"
+release_id="${2:-}"
+service_root="/opt/web-companion"
+releases_root="${service_root}/releases"
+current_link="${service_root}/current"
+
+if [[ ! "$release_id" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "Invalid release id." >&2
+  exit 2
+fi
+
+expected_archive="/tmp/web-companion-${release_id}.tgz"
+if [[ "$archive" != "$expected_archive" || ! -f "$archive" || -L "$archive" ]]; then
+  echo "Release archive is missing or has an unexpected path." >&2
+  exit 2
+fi
+
+allowed_member() {
+  case "$1" in
+    package.json|package-lock.json|src/*.mjs|public/*.html|public/*.css|public/*.js|node_modules/fflate/*|node_modules/fflate/**/*|node_modules/.package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+while IFS= read -r member; do
+  normalized="${member#./}"
+  [[ -z "$normalized" ]] && continue
+  case "$normalized" in
+    /*|..|../*|*/..|*/../*)
+      echo "Unsafe archive member: $member" >&2
+      exit 2
+      ;;
+  esac
+  if [[ "$normalized" != */ ]] && ! allowed_member "$normalized"; then
+    echo "Unexpected release member: $member" >&2
+    exit 2
+  fi
+done < <(tar -tzf "$archive")
+
+exec 9>/var/lock/web-companion-deploy.lock
+if ! flock -n 9; then
+  echo "Another web companion deployment is already running." >&2
+  exit 3
+fi
+
+stage_dir="$(mktemp -d /opt/.web-companion.XXXXXX)"
+release_dir="${releases_root}/${release_id}"
+previous_target=""
+if [[ -L "$current_link" ]]; then
+  previous_target="$(readlink -f "$current_link")"
+fi
+
+cleanup() {
+  rm -rf -- "$stage_dir"
+  rm -f -- "$archive"
+}
+trap cleanup EXIT
+
+tar -xzf "$archive" --no-same-owner --no-same-permissions -C "$stage_dir"
+if find "$stage_dir" -type l -print -quit | grep -q .; then
+  echo "Release archives may not contain symbolic links." >&2
+  exit 2
+fi
+for required_file in package.json package-lock.json src/server.mjs public/embed.html public/manage.html; do
+  if [[ ! -s "$stage_dir/$required_file" ]]; then
+    echo "Release is incomplete: $required_file" >&2
+    exit 2
+  fi
+done
+
+install -d -o root -g root -m 0755 "$releases_root"
+if [[ -e "$release_dir" ]]; then
+  if [[ "$previous_target" != "$release_dir" ]] || ! diff --recursive --brief "$stage_dir" "$release_dir" >/dev/null; then
+    echo "Existing release does not match this immutable deployment." >&2
+    exit 2
+  fi
+  rm -rf -- "$stage_dir"
+else
+  mv "$stage_dir" "$release_dir"
+  chown -R root:web-companion "$release_dir"
+  find "$release_dir" -type d -exec chmod 0750 {} +
+  find "$release_dir" -type f -exec chmod 0640 {} +
+fi
+
+ln -sfn "$release_dir" "${current_link}.new"
+mv -Tf "${current_link}.new" "$current_link"
+systemctl enable web-companion.service
+if ! systemctl restart web-companion.service; then
+  if [[ -n "$previous_target" && -d "$previous_target" ]]; then
+    ln -sfn "$previous_target" "${current_link}.rollback"
+    mv -Tf "${current_link}.rollback" "$current_link"
+    systemctl restart web-companion.service || true
+  fi
+  exit 1
+fi
+
+for _ in {1..20}; do
+  if curl --fail --silent --show-error http://127.0.0.1:4040/companion/healthz >/dev/null; then
+    find "$releases_root" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+      | sort -nr | awk 'NR > 5 { sub(/^[^ ]+ /, ""); print }' \
+      | xargs --no-run-if-empty rm -rf --
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "The new service did not become healthy." >&2
+if [[ -n "$previous_target" && -d "$previous_target" ]]; then
+  ln -sfn "$previous_target" "${current_link}.rollback"
+  mv -Tf "${current_link}.rollback" "$current_link"
+  systemctl restart web-companion.service || true
+fi
+exit 1

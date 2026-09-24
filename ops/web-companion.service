@@ -1,0 +1,42 @@
+[Unit]
+Description=Tony Tan restricted web companion publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=web-companion
+Group=web-companion
+WorkingDirectory=/opt/web-companion/current
+ExecStart=/usr/local/bin/node src/server.mjs
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/web-companion.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=12
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+ReadOnlyPaths=/opt/web-companion
+ReadWritePaths=/var/lib/web-companion
+UMask=0077
+MemoryMax=192M
+CPUQuota=30%
+TasksMax=32
+LimitNOFILE=128
+
+[Install]
+WantedBy=multi-user.target
+
