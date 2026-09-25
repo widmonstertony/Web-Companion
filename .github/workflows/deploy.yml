@@ -1,0 +1,115 @@
+name: Web Companion production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: web-companion-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Reject committed credential material
+        run: |
+          if git grep -I -q -P -e '(-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[0-9A-Za-z]{20,}|github_pat_[0-9A-Za-z_]{20,}|sk-[A-Za-z0-9_-]{32,}|AIza[0-9A-Za-z_-]{30,})' -- .; then
+            echo 'Potential credential material is committed; refusing to deploy.' >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install and test exact source
+        run: |
+          npm ci
+          npm test
+
+      - name: Verify the pinned AWS session plugin signature
+        env:
+          VERIFY_ONLY: "1"
+        run: bash .github/install-session-manager-plugin.sh
+
+      - name: Package one immutable release
+        run: |
+          install -d release/service
+          cp -R public src release/service/
+          install -m 0644 package.json package-lock.json release/service/
+          npm ci --omit=dev --ignore-scripts --prefix release/service
+          printf '%s\n' "$GITHUB_SHA" > release/.deploy-commit
+          tar -C release -czf release.tgz .
+
+      - name: Assume repository-scoped AWS role
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        with:
+          role-to-assume: arn:aws:iam::749355576137:role/TonyTanDeployWebCompanion
+          aws-region: us-east-2
+          role-duration-seconds: 900
+          role-session-name: tonytan-${{ github.run_id }}
+          allowed-account-ids: "749355576137"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Install the signature-verified AWS session plugin
+        run: bash .github/install-session-manager-plugin.sh
+
+      - name: Deploy through SSM and repository-scoped SSH
+        env:
+          PRODUCTION_DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+        run: |
+          test -n "${PRODUCTION_DEPLOY_KEY:-}"
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRODUCTION_DEPLOY_KEY" > "$HOME/.ssh/production_deploy"
+          chmod 0600 "$HOME/.ssh/production_deploy"
+          install -m 0644 .github/tonytan.me_known_hosts "$HOME/.ssh/known_hosts"
+          readonly release_bucket="tonytan-project-releases-749355576137-us-east-2"
+          readonly app_id="web-companion"
+          release_size="$(stat -c %s release.tgz)"
+          release_sha256="$(sha256sum release.tgz | awk '{print $1}')"
+          release_key="${app_id}/${GITHUB_SHA}.tgz"
+          aws s3api put-object \
+            --bucket "$release_bucket" \
+            --key "$release_key" \
+            --body release.tgz \
+            --checksum-algorithm SHA256 \
+            --server-side-encryption AES256 \
+            --expected-bucket-owner 749355576137 \
+            --no-cli-pager >/dev/null
+          release_url="$(aws s3 presign "s3://${release_bucket}/${release_key}" --region us-east-2 --expires-in 900)"
+          printf 'TONYTAN_S3_RELEASE_V1\n%s\n%s\n%s\n%s\n' \
+            "$GITHUB_SHA" "$release_size" "$release_sha256" "$release_url" \
+            > release.manifest
+          ssh -i "$HOME/.ssh/production_deploy" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o HostKeyAlias=tonytan.me \
+            -o "ProxyCommand=aws ssm start-session --region us-east-2 --target %h --document-name TonyTan-GitHubDeploySSH" \
+            github-web-companion@i-062a7bee78347292c < release.manifest
+
+      - name: Verify public deployment
+        run: |
+          health="$(curl --fail --silent --show-error --retry 5 --retry-all-errors https://tonytan.me/companion/healthz)"
+          case "$health" in
+            *'"ok":true'*) ;;
+            *) echo 'The Web Companion service is unhealthy.' >&2; exit 1 ;;
+          esac
+
+      - name: Remove transient release and key
+        if: always()
+        run: rm -f -- release.tgz release.manifest "$HOME/.ssh/production_deploy"
+

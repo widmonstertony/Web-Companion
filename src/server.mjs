@@ -169,7 +169,6 @@ export function createCompanionHandler() {
         authorize.searchParams.set('client_id', config.clientId);
         authorize.searchParams.set('redirect_uri', `${publicOrigin}/companion/auth/callback`);
         authorize.searchParams.set('state', state);
-        authorize.searchParams.set('scope', 'read:user');
         response.setHeader('Set-Cookie', cookie(stateCookie, signedState, { maxAge: 600, sameSite: 'Lax' }));
         send(response, 303, '', { Location: authorize.toString() });
         return;
