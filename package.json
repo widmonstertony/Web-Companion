@@ -1,6 +1,6 @@
 {
   "name": "@widmonstertony/web-companion",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test",
-    "check": "npm test"
+    "check": "node --check public/embed.js && node --check public/manage.js && node --check public/shijima-import.js && npm test",
+    "convert:shijima": "node tools/convert-shijima.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3"
