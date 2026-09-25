@@ -10,8 +10,8 @@
   <body>
     <main>
       <p class="eyebrow">TONYTAN.ME / WEB COMPANION</p>
-      <h1>Publish the corner companion.</h1>
-      <p class="lede">Only the site owner can publish. Visitors automatically receive the active sanitized pack.</p>
+      <h1>Build the companion cast.</h1>
+      <p class="lede">Import a native Shijima export or a Companion ZIP, choose how many characters appear, then publish one sanitized collection.</p>
 
       <section class="auth-card" data-auth-state="loading">
         <p class="status">Checking administrator session…</p>
@@ -19,9 +19,30 @@
       </section>
 
       <form class="publish-card" hidden>
-        <label for="pack">Companion ZIP</label>
-        <input id="pack" name="pack" type="file" accept=".zip,application/zip" required />
-        <p>Maximum 8 MiB. The service republishes only validated JSON and PNG frames.</p>
+        <label for="pack">Companion or Shijima ZIP</label>
+        <input id="pack" name="pack" type="file" accept=".zip,.mascot,application/zip" required />
+        <p class="file-help">Maximum 24 MiB. Native Shijima XML is converted locally in this browser; the server republishes only validated manifests, PNG frames and referenced WAV sounds.</p>
+
+        <section class="collection-editor" hidden aria-labelledby="collection-title">
+          <div class="collection-heading">
+            <div>
+              <p class="section-kicker">COLLECTION</p>
+              <h2 id="collection-title">Choose who appears</h2>
+            </div>
+            <p class="collection-summary" aria-live="polite"></p>
+          </div>
+          <div class="collection-limits">
+            <label>Desktop maximum <input class="desktop-limit" type="number" min="1" max="8" value="8" /></label>
+            <label>Mobile maximum <input class="mobile-limit" type="number" min="1" max="4" value="2" /></label>
+          </div>
+          <div class="character-list"></div>
+          <p class="import-warnings" hidden></p>
+        </section>
+
+        <label class="rights-confirmation">
+          <input name="rights" type="checkbox" required />
+          <span>I confirm I own these assets or have permission to publish every included image and sound.</span>
+        </label>
         <button type="submit">Validate and publish</button>
         <progress max="100" value="0" hidden></progress>
         <output aria-live="polite"></output>

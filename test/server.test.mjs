@@ -29,7 +29,15 @@ test('serves health, embed, and anonymous session without secrets in responses',
   const embed = await invoke('GET', '/companion/embed');
   assert.equal(embed.status, 200);
   assert.match(embed.headers['content-security-policy'], /frame-ancestors 'self'/);
+  assert.match(embed.headers['content-security-policy'], /media-src blob:/);
   assert.match(embed.text(), /Web Companion/);
+
+  const importer = await invoke('GET', '/companion/shijima-import.js');
+  assert.equal(importer.status, 200);
+  assert.match(importer.text(), /convertShijimaArchive/);
+
+  const manager = await invoke('GET', '/companion/manage');
+  assert.match(manager.text(), /permission to publish every included image and sound/);
 
   const session = await invoke('GET', '/companion/api/session');
   assert.deepEqual(session.json(), { authenticated: false });

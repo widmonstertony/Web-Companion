@@ -63,3 +63,55 @@ test('rejects unsafe timing and identifiers', () => {
     (error) => error instanceof PackValidationError && error.code === 'FRAME_DURATION',
   );
 });
+
+function collectionArchive(overrides = {}) {
+  const nested = {
+    schemaVersion: 2,
+    id: 'blue-cat',
+    name: { en: 'Blue Cat', zh: '蓝猫' },
+    canvas: { width: 256, height: 256 },
+    initialState: 'idle',
+    states: { idle: { loop: true, frames: [{ src: 'frames/idle.png', durationMs: 160 }] } },
+    behaviorPool: [{ state: 'idle', weight: 1 }],
+  };
+  const collection = {
+    schemaVersion: 2,
+    id: 'corner-friends',
+    name: { en: 'Corner Friends', zh: '角落伙伴' },
+    maxVisible: 4,
+    mobileMaxVisible: 2,
+    companions: [{
+      id: 'blue-cat',
+      manifest: 'companions/blue-cat/companion.json',
+      enabled: true,
+      count: 2,
+      mobileCount: 1,
+      scale: 0.9,
+      behavior: 'auto',
+    }],
+    ...overrides,
+  };
+  return zipSync({
+    'collection.json': strToU8(JSON.stringify(collection)),
+    'companions/blue-cat/companion.json': strToU8(JSON.stringify(nested)),
+    'companions/blue-cat/frames/idle.png': PNG,
+  });
+}
+
+test('accepts a sanitized multi-companion collection with desktop and mobile counts', () => {
+  const result = validateAndSanitizePack(collectionArchive());
+  assert.equal(result.kind, 'collection');
+  assert.equal(result.companionCount, 1);
+  assert.equal(result.instanceCount, 2);
+  assert.equal(result.frameCount, 1);
+  assert.equal(result.manifest.companions[0].mobileCount, 1);
+});
+
+test('rejects collections whose configured counts exceed their limits', () => {
+  assert.throws(
+    () => validateAndSanitizePack(collectionArchive({
+      maxVisible: 1,
+    })),
+    (error) => error instanceof PackValidationError && error.code === 'INSTANCE_LIMIT',
+  );
+});

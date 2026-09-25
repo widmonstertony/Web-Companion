@@ -39,5 +39,4 @@ jobs:
         run: npm ci
 
       - name: Run validation and service tests
-        run: npm test
-
+        run: npm run check

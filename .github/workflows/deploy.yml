@@ -37,7 +37,7 @@ jobs:
       - name: Install and test exact source
         run: |
           npm ci
-          npm test
+          npm run check
 
       - name: Verify the pinned AWS session plugin signature
         env:
@@ -112,4 +112,3 @@ jobs:
       - name: Remove transient release and key
         if: always()
         run: rm -f -- release.tgz release.manifest "$HOME/.ssh/production_deploy"
-

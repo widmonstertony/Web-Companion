@@ -27,6 +27,7 @@ const staticRoutes = new Map([
   ['/companion/embed', ['embed.html', 'text/html; charset=utf-8']],
   ['/companion/embed/', ['embed.html', 'text/html; charset=utf-8']],
   ['/companion/embed.js', ['embed.js', 'text/javascript; charset=utf-8']],
+  ['/companion/shijima-import.js', ['shijima-import.js', 'text/javascript; charset=utf-8']],
   ['/companion/companion.css', ['companion.css', 'text/css; charset=utf-8']],
   ['/companion/manage', ['manage.html', 'text/html; charset=utf-8']],
   ['/companion/manage/', ['manage.html', 'text/html; charset=utf-8']],
@@ -77,7 +78,7 @@ function securityHeaders(pathname) {
     : "'self' http://127.0.0.1:5173 http://localhost:5173";
   return {
     'Content-Security-Policy': embed
-      ? `default-src 'none'; script-src 'self'; style-src 'self'; img-src blob:; connect-src 'self' https://raw.githubusercontent.com; frame-ancestors ${frameAncestors}; base-uri 'none'; form-action 'none'`
+      ? `default-src 'none'; script-src 'self'; style-src 'self'; img-src blob:; media-src blob:; connect-src 'self' https://raw.githubusercontent.com; frame-ancestors ${frameAncestors}; base-uri 'none'; form-action 'none'`
       : "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://github.com",
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
@@ -131,7 +132,7 @@ async function serveStatic(pathname, response) {
   const bytes = await readFile(join(publicDirectory, filename));
   send(response, 200, bytes, {
     'Content-Type': contentType,
-    'Cache-Control': extname(filename) === '.html' ? 'no-store' : 'public, max-age=3600',
+    'Cache-Control': extname(filename) === '.html' ? 'no-store' : 'public, max-age=300, must-revalidate',
   });
   return true;
 }
@@ -222,14 +223,17 @@ export function createCompanionHandler() {
         const packUrl = `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/${encodeURIComponent(branch)}/${packPath}`;
         const publishedAt = new Date().toISOString();
         const publicManifest = {
-          schemaVersion: 1,
+          schemaVersion: pack.kind === 'collection' ? 2 : 1,
           active: {
             id: pack.manifest.id,
             name: pack.manifest.name,
+            kind: pack.kind,
             version: pack.version,
             sha256: pack.sha256,
             packUrl,
             publishedAt,
+            companionCount: pack.companionCount,
+            instanceCount: pack.instanceCount,
           },
         };
         const result = await config.github.publish({ packPath, packBytes: pack.bytes, manifest: publicManifest });
@@ -239,6 +243,8 @@ export function createCompanionHandler() {
           name: pack.manifest.name.en,
           version: pack.version,
           frameCount: pack.frameCount,
+          companionCount: pack.companionCount,
+          instanceCount: pack.instanceCount,
           commitSha: result.commitSha,
         }, { 'Cache-Control': 'no-store' });
         return;
