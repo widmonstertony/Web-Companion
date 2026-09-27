@@ -1,0 +1,83 @@
+:root {
+  color-scheme: light dark;
+  --glass-bg: #edf7ff;
+  --glass-bg-deep: #dbeeff;
+  --glass-panel: rgba(247, 251, 255, .68);
+  --glass-panel-strong: rgba(250, 253, 255, .86);
+  --glass-edge: rgba(74, 112, 154, .16);
+  --glass-highlight: rgba(255,255,255,.8);
+  --glass-ink: #13243c;
+  --glass-muted: #61748b;
+  --glass-blue: #6da1fa;
+  --glass-shadow: 0 24px 70px rgba(54, 94, 141, .16), inset 0 1px 0 rgba(255,255,255,.82);
+}
+body {
+  background:
+    radial-gradient(circle at 12% -6%, rgba(107,166,255,.34), transparent 31rem),
+    radial-gradient(circle at 92% 8%, rgba(195,225,255,.26), transparent 28rem),
+    linear-gradient(155deg, var(--glass-bg), var(--glass-bg-deep));
+  background-attachment: fixed;
+  color: var(--glass-ink);
+}
+
+main {
+  width: min(920px, calc(100% - 24px));
+  margin: max(18px, env(safe-area-inset-top)) auto 44px;
+}
+
+.auth-card,
+.publish-card,
+.collection-editor,
+.character-card {
+  border: 1px solid var(--glass-highlight);
+  background: linear-gradient(145deg, rgba(255,255,255,.18), transparent 45%), var(--glass-panel);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  box-shadow: var(--glass-shadow);
+}
+
+.auth-card,
+.publish-card,
+.collection-editor {
+  border-radius: 26px;
+}
+
+input,
+button,
+.login {
+  border-radius: 14px;
+}
+
+button[type="submit"],
+.login {
+  border-color: rgba(79,132,222,.34);
+  background: linear-gradient(145deg, #8fc0ff, #5e96f1);
+  color: #10243d;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.58);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-bg: #07101d;
+    --glass-bg-deep: #0e1b2c;
+    --glass-panel: rgba(23, 37, 56, .64);
+    --glass-panel-strong: rgba(27, 42, 63, .82);
+    --glass-edge: rgba(183, 214, 255, .14);
+    --glass-highlight: rgba(255,255,255,.12);
+    --glass-ink: #f2f7ff;
+    --glass-muted: #a8b8cd;
+    --glass-blue: #8bb7ff;
+    --glass-shadow: 0 28px 85px rgba(0,0,0,.43), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .auth-card,
+  .publish-card,
+  .collection-editor,
+  .character-card {
+    background: var(--glass-panel-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
