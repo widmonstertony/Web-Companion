@@ -39,6 +39,11 @@ test('serves health, embed, and anonymous session without secrets in responses',
   const manager = await invoke('GET', '/companion/manage');
   assert.match(manager.text(), /permission to publish every included image and sound/);
 
+  const liquidGlass = await invoke('GET', '/companion/liquid-glass.css');
+  assert.equal(liquidGlass.status, 200);
+  assert.equal(liquidGlass.headers['content-type'], 'text/css; charset=utf-8');
+  assert.match(liquidGlass.text(), /backdrop-filter/);
+
   const session = await invoke('GET', '/companion/api/session');
   assert.deepEqual(session.json(), { authenticated: false });
 });

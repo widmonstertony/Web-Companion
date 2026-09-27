@@ -33,6 +33,7 @@ const staticRoutes = new Map([
   ['/companion/manage/', ['manage.html', 'text/html; charset=utf-8']],
   ['/companion/manage.js', ['manage.js', 'text/javascript; charset=utf-8']],
   ['/companion/manage.css', ['manage.css', 'text/css; charset=utf-8']],
+  ['/companion/liquid-glass.css', ['liquid-glass.css', 'text/css; charset=utf-8']],
 ]);
 
 async function optionalSecret(path, fallbackName) {
